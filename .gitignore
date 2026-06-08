@@ -1,4 +1,3 @@
-cat > .gitignore << 'EOF'
 # Build outputs
 build_rv/
 build_host/
@@ -22,4 +21,3 @@ tests/test_*
 # OS files
 .DS_Store
 Thumbs.db
-EOF
