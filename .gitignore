@@ -1,69 +1,25 @@
-# Prerequisites
-*.d
-
-# Compiled Object files
-*.slo
-*.lo
+cat > .gitignore << 'EOF'
+# Build outputs
+build_rv/
+build_host/
 *.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Linker files
-*.ilk
-
-# Debugger Files
-*.pdb
-
-# Compiled Dynamic libraries
-*.so
-*.dylib
-*.dll
-*.so.*
-
-
-# Fortran module files
-*.mod
-*.smod
-
-# Compiled Static libraries
-*.lai
-*.la
 *.a
-*.lib
+*.elf
 
-# Executables
-*.exe
-*.out
-*.app
+# Test binaries
+tests/test_*
+!tests/test_*.cpp
 
-# Build directories
-build/
-Build/
-build-*/
+# Generated images
+*.raw
 
-# CMake generated files
-CMakeFiles/
-CMakeCache.txt
-cmake_install.cmake
-Makefile
-install_manifest.txt
-compile_commands.json
-
-# Temporary files
-*.tmp
-*.log
-*.bak
+# IDE files
+.vscode/
+.idea/
 *.swp
+*~
 
-# vcpkg
-vcpkg_installed/
-
-# debug information files
-*.dwo
-
-# test output & cache
-Testing/
-.cache/
+# OS files
+.DS_Store
+Thumbs.db
+EOF
