@@ -1,23 +1,30 @@
-# Build outputs
+# Build Outputs and Object Files
 build_rv/
 build_host/
 *.o
 *.a
 *.elf
 
-# Test binaries
+# Custom project executables
+my_program_host
+my_program_riscv
+my_tests
+# 2. Generated Images and Data
+*.raw
+*.png
+# 3. Exceptions (Keep Input Test Images)
+!test_*.raw
+!test_*_original.png
+
+# 4. Test Binaries (if used in subfolders)
 tests/test_*
 !tests/test_*.cpp
-
-# Generated images
-*.raw
-
-# IDE files
+# 5. IDE and Temporary Files
 .vscode/
 .idea/
 *.swp
 *~
-
-# OS files
+__pycache__/
+# 6. OS Specific Files
 .DS_Store
 Thumbs.db
