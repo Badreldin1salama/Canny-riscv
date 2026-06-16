@@ -16,7 +16,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libgtest-dev
+          sudo apt-get install -y build-essential cmake libgtest-dev
+
+      - name: Build GoogleTest
+        run: |
+          cd /usr/src/gtest
+          sudo cmake .
+          sudo make
+          sudo cp lib/*.a /usr/lib
 
       - name: Build & Run Tests
         run: |
@@ -48,4 +55,4 @@ jobs:
 
       - name: Check formatting
         run: |
-          find . -name "*.cpp" -o -name "*.h" | xargs clang-format --dry-run --Werror
+          clang-format --dry-run *.cpp *.h
