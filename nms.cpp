@@ -1,13 +1,16 @@
 #include "nms.h"
+#include <cstring> // Added for std::memset
 
-void applyNMS(const std::vector<uint8_t>& magnitude,
-              const std::vector<uint8_t>& direction,
-              std::vector<uint8_t>& nmsResult,
+void applyNMS(const uint8_t* magnitude,
+              const uint8_t* direction,
+              uint8_t* nmsResult,
               int width,
               int height) {
     
-    // Allocate memory and initialize with 0
-    nmsResult.assign(width * height, 0);
+    int size = width * height;
+
+    // تصفير المصفوفة بالكامل لضمان إن بيكسلات الحدود (Borders) تفضل بصفر
+    std::memset(nmsResult, 0, size * sizeof(uint8_t));
 
     // Skip the outer border to avoid out-of-bounds errors (Boundary Handling)
     for (int row = 1; row < height - 1; ++row) {
@@ -26,23 +29,21 @@ void applyNMS(const std::vector<uint8_t>& magnitude,
             // Determine neighbors based on gradient direction
             if (dir == 0) {
                 // Horizontal gradient -> Vertical edge
-                // Compare with pixels above and below
                 neighbor1 = magnitude[(row - 1) * width + col];
                 neighbor2 = magnitude[(row + 1) * width + col];
             } 
             else if (dir == 90) {
                 // Vertical gradient -> Horizontal edge
-                // Compare with pixels left and right
                 neighbor1 = magnitude[row * width + (col - 1)];
                 neighbor2 = magnitude[row * width + (col + 1)];
             } 
             else if (dir == 45) {
-                // Diagonal 45 -> Compare top-right and bottom-left
+                // Diagonal 45
                 neighbor1 = magnitude[(row - 1) * width + (col + 1)];
                 neighbor2 = magnitude[(row + 1) * width + (col - 1)];
             } 
             else if (dir == 135) {
-                // Diagonal 135 -> Compare top-left and bottom-right
+                // Diagonal 135
                 neighbor1 = magnitude[(row - 1) * width + (col - 1)];
                 neighbor2 = magnitude[(row + 1) * width + (col + 1)];
             }

@@ -1,7 +1,6 @@
 #ifndef GAUSSIAN_H
 #define GAUSSIAN_H
 
-#include <vector>
 #include <cstdint>
 
 /**
@@ -13,13 +12,11 @@
  * @param TKernel Kernel coefficient type (default int16_t).
  */
 template <typename TPixel = uint8_t, typename TAccum = int32_t, typename TKernel = int16_t>
-void applyGaussianBlur(const std::vector<TPixel>& inputImage,
-                       std::vector<TPixel>& outputImage,
+void applyGaussianBlur(const TPixel* inputImage,
+                       TPixel* outputImage,
                        int width,
                        int height) {
     
-    outputImage.resize(width * height);
-
     // 5x5 Gaussian kernel with sigma ~= 1.0
     // Integer coefficients perfectly summing to 273
     const TKernel kernel[5][5] = {

@@ -1,13 +1,13 @@
 #include "direction.h"
 #include <cstdlib>
+#include <cmath> // Added for std::abs
 
-void computeDirection(const std::vector<int16_t>& Gx,
-                      const std::vector<int16_t>& Gy,
-                      std::vector<uint8_t>& direction,
+void computeDirection(const int16_t* Gx,
+                      const int16_t* Gy,
+                      uint8_t* direction,
                       int width, int height) {
     
     int size = width * height;
-    direction.assign(size, 0);
 
     for (int i = 0; i < size; ++i) {
         int32_t ax = std::abs(Gx[i]);

@@ -1,13 +1,16 @@
 #include "sobel.h"
+#include <cstring> // ضروري عشان نستخدم memset
 
-void applySobel(const std::vector<uint8_t>& inputImage,
-                std::vector<int16_t>& Gx,
-                std::vector<int16_t>& Gy,
+void applySobel(const uint8_t* inputImage,
+                int16_t* Gx,
+                int16_t* Gy,
                 int width, int height) {
     
     int size = width * height;
-    Gx.assign(size, 0);
-    Gy.assign(size, 0);
+    
+    // تصفير المصفوفات بالكامل لضمان إن بيكسلات الحدود تكون بصفر
+    std::memset(Gx, 0, size * sizeof(int16_t));
+    std::memset(Gy, 0, size * sizeof(int16_t));
 
     for (int row = 1; row < height - 1; ++row) {
         for (int col = 1; col < width - 1; ++col) {
@@ -29,8 +32,8 @@ void applySobel(const std::vector<uint8_t>& inputImage,
             int gy = -p00 - 2 * p01 - p02 + p20 + 2 * p21 + p22;
 
             int index = row * width + col;
-            Gx[index] = (int16_t)gx;
-            Gy[index] = (int16_t)gy;
+            Gx[index] = static_cast<int16_t>(gx);
+            Gy[index] = static_cast<int16_t>(gy);
         }
     }
 }

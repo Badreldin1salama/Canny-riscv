@@ -10,6 +10,7 @@
 #include "threshold.h"
 #include "hysteresis.h" 
 #include "image_io.h"
+#include <cstdlib>
 
 int main() {
     int width = 256;  
@@ -22,16 +23,32 @@ int main() {
     std::string thresholdFile = "output_4_threshold.raw"; 
     std::string finalFile = "output_5_final.raw"; 
 
-    std::vector<uint8_t> inputImage;
-    std::vector<uint8_t> blurredImage;
+   // 1. حساب الحجم المطلوب لكل نوع (مع ضمان المحاذاة لـ 64 بايت)
+    size_t num_pixels = width * height;
+    size_t aligned_size_8bit = ((num_pixels * sizeof(uint8_t) + 63) / 64) * 64;
+    size_t aligned_size_16bit = ((num_pixels * sizeof(int16_t) + 63) / 64) * 64;
+
+    // 2. تعريف المؤشرات وحجز الميموري
+    // صورة الإدخال مش هنحجزلها هنا، لأن دالة readRawImage هي اللي هتحجزلها من جوه
+    uint8_t* inputImage = nullptr; 
+
+    // باقي المصفوفات هنحجزلها الميموري بتاعتنا بـ aligned_alloc
+    uint8_t* blurredImage = static_cast<uint8_t*>(aligned_alloc(64, aligned_size_8bit));
     
-    std::vector<int16_t> Gx;
-    std::vector<int16_t> Gy;
-    std::vector<uint8_t> sobelMagnitude;
-    std::vector<uint8_t> sobelDirection;
+    int16_t* Gx = static_cast<int16_t*>(aligned_alloc(64, aligned_size_16bit));
+    int16_t* Gy = static_cast<int16_t*>(aligned_alloc(64, aligned_size_16bit));
     
-    std::vector<uint8_t> nmsResult;
-    std::vector<uint8_t> thresholdResult;
+    uint8_t* sobelMagnitude = static_cast<uint8_t*>(aligned_alloc(64, aligned_size_8bit));
+    uint8_t* sobelDirection = static_cast<uint8_t*>(aligned_alloc(64, aligned_size_8bit));
+    
+    uint8_t* nmsResult = static_cast<uint8_t*>(aligned_alloc(64, aligned_size_8bit));
+    uint8_t* thresholdResult = static_cast<uint8_t*>(aligned_alloc(64, aligned_size_8bit));
+
+    // 3. التأكد إن الحجز تم بنجاح ومفيش مشاكل في الرامات
+    if (!blurredImage || !Gx || !Gy || !sobelMagnitude || !sobelDirection || !nmsResult || !thresholdResult) {
+        std::cerr << "Error: Memory allocation failed!\n";
+        return -1;
+    }
 
   std::cout << "Reading image...\n";
     if (!readRawImage(inputFile, inputImage, width, height)) return -1; 
@@ -65,5 +82,14 @@ int main() {
     
     std::cout << "Done! All steps completed and all images saved successfully.\n";
 
+    // --- Clean up Memory ---
+    free(inputImage);
+    free(blurredImage);
+    free(Gx);
+    free(Gy);
+    free(sobelMagnitude);
+    free(sobelDirection);
+    free(nmsResult);
+    free(thresholdResult);
     return 0;
 }

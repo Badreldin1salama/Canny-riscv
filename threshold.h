@@ -1,7 +1,6 @@
 #ifndef THRESHOLD_H
 #define THRESHOLD_H
 
-#include <vector>
 #include <cstdint>
 
 /**
@@ -13,8 +12,8 @@
  * @param lowThreshold Values below this are set to 0.
  * @param highThreshold Values above or equal to this are set to 255.
  */
-void applyDoubleThreshold(const std::vector<uint8_t>& nmsImage,
-                          std::vector<uint8_t>& thresholdResult,
+void applyDoubleThreshold(const uint8_t* nmsImage,
+                          uint8_t* thresholdResult,
                           int width,
                           int height,
                           uint8_t lowThreshold,
