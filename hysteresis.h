@@ -1,7 +1,6 @@
 #ifndef HYSTERESIS_H
 #define HYSTERESIS_H
 
-#include <vector>
 #include <cstdint>
 
 /**
@@ -10,6 +9,6 @@
  * @param width Image width.
  * @param height Image height.
  */
-void applyHysteresis(std::vector<uint8_t>& image, int width, int height);
+void applyHysteresis(uint8_t* image, int width, int height);
 
 #endif // HYSTERESIS_H

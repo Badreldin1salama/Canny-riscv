@@ -1,13 +1,17 @@
 #include "hysteresis.h"
+#include <cstdlib> // عشان نستخدم malloc و free
 
-void applyHysteresis(std::vector<uint8_t>& image, int width, int height) {
-    std::vector<int> stack;
+void applyHysteresis(uint8_t* image, int width, int height) {
     int size = width * height;
+
+    // حجز مصفوفة عادية كـ Stack بدل std::vector لتوافق الـ Bare Metal
+    int* stack = static_cast<int*>(malloc(size * sizeof(int)));
+    int stack_top = 0; // مؤشر بيعرفنا إحنا فين في المكدس
 
     // 1. ندور على كل الحواف القوية (255) ونحط أماكنها في المكدس
     for (int i = 0; i < size; ++i) {
         if (image[i] == 255) {
-            stack.push_back(i);
+            stack[stack_top++] = i;
         }
     }
 
@@ -18,9 +22,9 @@ void applyHysteresis(std::vector<uint8_t>& image, int width, int height) {
         { 1, -1}, { 1, 0}, { 1, 1}
     };
 
-    while (!stack.empty()) {
-        int idx = stack.back();
-        stack.pop_back();
+    while (stack_top > 0) {
+        // نسحب آخر عنصر من المكدس
+        int idx = stack[--stack_top];
 
         int row = idx / width;
         int col = idx % width;
@@ -34,7 +38,7 @@ void applyHysteresis(std::vector<uint8_t>& image, int width, int height) {
                 int nIdx = r * width + c;
                 if (image[nIdx] == 128) { 
                     image[nIdx] = 255;    // نورها أبيض
-                    stack.push_back(nIdx); // ضيفها للمكدس عشان نفحص جيرانها هي كمان
+                    stack[stack_top++] = nIdx; // ضيفها للمكدس عشان نفحص جيرانها هي كمان
                 }
             }
         }
@@ -46,4 +50,7 @@ void applyHysteresis(std::vector<uint8_t>& image, int width, int height) {
             image[i] = 0;
         }
     }
+
+    // تنظيف الميموري الخاصة بالمكدس
+    free(stack);
 }

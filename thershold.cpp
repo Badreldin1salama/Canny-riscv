@@ -1,14 +1,17 @@
 #include "threshold.h"
+#include <cstring> // ضروري عشان نستخدم memset
 
-void applyDoubleThreshold(const std::vector<uint8_t>& nmsImage,
-                          std::vector<uint8_t>& thresholdResult,
+void applyDoubleThreshold(const uint8_t* nmsImage,
+                          uint8_t* thresholdResult,
                           int width,
                           int height,
                           uint8_t lowThreshold,
                           uint8_t highThreshold) {
     
     int size = width * height;
-    thresholdResult.assign(size, 0);
+    
+    // تصفير المصفوفة بالكامل قبل البدأ
+    std::memset(thresholdResult, 0, size * sizeof(uint8_t));
 
     // Single pass over the image, perfect for SIMD/Vectorization later
     for (int i = 0; i < size; ++i) {
