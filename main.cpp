@@ -4,9 +4,10 @@
 #include <string>
 #include "image_io.h"
 #include "gaussian.h"
-#include "sobel.h"       // Added header for Sobel filter
-#include "magnitude.h"   // Added header for Magnitude calculation
-#include "direction.h"   // Added header for Direction calculation
+#include "sobel.h"       
+#include "magnitude.h"   
+#include "direction.h"   
+#include "nms.h"         // Added header for Non-Maximum Suppression
 
 int main() {
     // Project specific image dimensions
@@ -17,6 +18,7 @@ int main() {
     std::string inputFile = "test_1.raw";
     std::string blurredFile = "output_1_blurred.raw";
     std::string sobelFile = "output_2_sobel.raw";
+    std::string nmsFile = "output_3_nms.raw";     // New output file for NMS
 
     // Vectors to store image data and gradients
     std::vector<uint8_t> inputImage;
@@ -26,8 +28,9 @@ int main() {
     std::vector<int16_t> Gy;
     std::vector<uint8_t> sobelMagnitude;
     std::vector<uint8_t> sobelDirection;
+    std::vector<uint8_t> nmsImage;                // Vector for NMS output
 
-    std::cout << "--- Testing Sobel Filter Feature ---\n";
+    std::cout << "--- Testing Non-Maximum Suppression (NMS) Feature ---\n";
     
     // 1. Read the input image
     std::cout << "Reading image...\n";
@@ -39,7 +42,12 @@ int main() {
     // 2. Apply Gaussian Blur (Pre-requisite for Sobel)
     std::cout << "Applying Gaussian Blur...\n";
     applyGaussianBlur(inputImage, blurredImage, width, height);
-
+    // Save the blurred image to verify Gaussian output
+    std::cout << "Writing blurred image...\n";
+    if (!writeRawImage(blurredFile, blurredImage, width, height)) {
+        std::cerr << "Error: Could not write " << blurredFile << "\n";
+        return -1; 
+    }
     // 3. Apply Sobel Filter to get Gx and Gy
     std::cout << "Applying Sobel Filter...\n";
     applySobel(blurredImage, Gx, Gy, width, height);
@@ -55,11 +63,22 @@ int main() {
         return -1; 
     }
 
-    // 5. Compute Gradient Direction (Needed for NMS later)
+    // 5. Compute Gradient Direction (Needed for NMS)
     std::cout << "Computing Direction...\n";
     computeDirection(Gx, Gy, sobelDirection, width, height);
     
-    std::cout << "✅ Done! Sobel Filter, Magnitude, and Direction applied successfully.\n";
+    // 6. Apply Non-Maximum Suppression (NMS)
+    std::cout << "Applying Non-Maximum Suppression...\n";
+    applyNMS(sobelMagnitude, sobelDirection, nmsImage, width, height);
+    
+    // 7. Save the NMS image to verify
+    std::cout << "Writing NMS image...\n";
+    if (!writeRawImage(nmsFile, nmsImage, width, height)) {
+        std::cerr << "Error: Could not write " << nmsFile << "\n";
+        return -1; 
+    }
+
+    std::cout << "✅ Done! NMS applied successfully.\n";
 
     return 0;
 }
