@@ -7,7 +7,8 @@
 #include "sobel.h"       
 #include "magnitude.h"   
 #include "direction.h"   
-#include "nms.h"         // Added header for Non-Maximum Suppression
+#include "nms.h"         
+#include "threshold.h"   // Added header for Double Thresholding
 
 int main() {
     // Project specific image dimensions
@@ -18,7 +19,8 @@ int main() {
     std::string inputFile = "test_1.raw";
     std::string blurredFile = "output_1_blurred.raw";
     std::string sobelFile = "output_2_sobel.raw";
-    std::string nmsFile = "output_3_nms.raw";     // New output file for NMS
+    std::string nmsFile = "output_3_nms.raw";
+    std::string thresholdFile = "output_4_threshold.raw"; // Output file for Threshold stage
 
     // Vectors to store image data and gradients
     std::vector<uint8_t> inputImage;
@@ -28,9 +30,10 @@ int main() {
     std::vector<int16_t> Gy;
     std::vector<uint8_t> sobelMagnitude;
     std::vector<uint8_t> sobelDirection;
-    std::vector<uint8_t> nmsImage;                // Vector for NMS output
+    std::vector<uint8_t> nmsResult;
+    std::vector<uint8_t> thresholdResult; // Vector for Threshold output
 
-    std::cout << "--- Testing Non-Maximum Suppression (NMS) Feature ---\n";
+    std::cout << "--- Testing Double Thresholding Feature ---\n";
     
     // 1. Read the input image
     std::cout << "Reading image...\n";
@@ -39,46 +42,42 @@ int main() {
         return -1; 
     }
     
-    // 2. Apply Gaussian Blur (Pre-requisite for Sobel)
+    // 2. Apply Gaussian Blur
     std::cout << "Applying Gaussian Blur...\n";
     applyGaussianBlur(inputImage, blurredImage, width, height);
-    // Save the blurred image to verify Gaussian output
-    std::cout << "Writing blurred image...\n";
-    if (!writeRawImage(blurredFile, blurredImage, width, height)) {
-        std::cerr << "Error: Could not write " << blurredFile << "\n";
-        return -1; 
-    }
-    // 3. Apply Sobel Filter to get Gx and Gy
+    writeRawImage(blurredFile, blurredImage, width, height);
+
+    // 3. Apply Sobel Filter
     std::cout << "Applying Sobel Filter...\n";
     applySobel(blurredImage, Gx, Gy, width, height);
 
     // 4. Compute Gradient Magnitude
     std::cout << "Computing Magnitude...\n";
     computeMagnitude(Gx, Gy, sobelMagnitude, width, height);
-    
-    // Save the magnitude image to verify Sobel output
-    std::cout << "Writing Sobel magnitude image...\n";
-    if (!writeRawImage(sobelFile, sobelMagnitude, width, height)) {
-        std::cerr << "Error: Could not write " << sobelFile << "\n";
-        return -1; 
-    }
+    writeRawImage(sobelFile, sobelMagnitude, width, height); 
 
-    // 5. Compute Gradient Direction (Needed for NMS)
+    // 5. Compute Gradient Direction
     std::cout << "Computing Direction...\n";
     computeDirection(Gx, Gy, sobelDirection, width, height);
-    
+
     // 6. Apply Non-Maximum Suppression (NMS)
     std::cout << "Applying Non-Maximum Suppression...\n";
-    applyNMS(sobelMagnitude, sobelDirection, nmsImage, width, height);
+    applyNMS(sobelMagnitude, sobelDirection, nmsResult, width, height);
+    writeRawImage(nmsFile, nmsResult, width, height); 
+
+    // 7. Apply Double Thresholding
+    std::cout << "Applying Double Thresholding...\n";
+    // Using Low Threshold = 10 and High Threshold = 70 as per your configuration
+    applyDoubleThreshold(nmsResult, thresholdResult, width, height, 40, 70);
     
-    // 7. Save the NMS image to verify
-    std::cout << "Writing NMS image...\n";
-    if (!writeRawImage(nmsFile, nmsImage, width, height)) {
-        std::cerr << "Error: Could not write " << nmsFile << "\n";
+    // 8. Save Threshold result to verify
+    std::cout << "Writing Threshold image...\n";
+    if (!writeRawImage(thresholdFile, thresholdResult, width, height)) {
+        std::cerr << "Error: Could not write " << thresholdFile << "\n";
         return -1; 
     }
 
-    std::cout << "✅ Done! NMS applied successfully.\n";
+    std::cout << "✅ Done! Double Thresholding applied and saved successfully.\n";
 
     return 0;
 }
