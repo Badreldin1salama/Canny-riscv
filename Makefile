@@ -44,47 +44,6 @@ canny_rv:
 
 # Alias for GitHub Actions
 riscv: canny_rv
-# RISC-V Flags for Vector Extension support + O3 Optimization
-RISCV_FLAGS = -O3 -march=rv64gcv -mabi=lp64d -Wall
-# RISC-V Flags for Vector Extension support + O3 Optimization
-RISCV_FLAGS = -O3 -march=rv64gcv -mabi=lp64d -Wall
-
-# Google Test Flags + O3 Optimization
-HOST_FLAGS = -O3 -Wall
-GTEST_FLAGS = -lgtest -lgtest_main -pthread
-
-# Helper to automatically find all .cpp files
-ALL_CPPS = $(wildcard *.cpp)
-
-# 1. استبعاد syscalls.cpp من الملفات الأساسية عشان ميضربش مع الـ Host
-LIB_SRCS = $(filter-out main.cpp test.cpp syscalls.cpp, $(ALL_CPPS))
-
-# Source files for the main application (Host)
-MAIN_SRCS = main.cpp $(LIB_SRCS)
-
-# Source files for the RISC-V application (يجب إضافة syscalls هنا فقط)
-RISCV_SRCS = main.cpp $(LIB_SRCS) syscalls.cpp
-
-# Source files for the Google Test suite
-TEST_SRCS = test.cpp $(LIB_SRCS)
-
-# Default target
-all: host canny_rv
-
-# Build for the local host machine (Ryzen/x86)
-host:
-	$(CXX_HOST) $(HOST_FLAGS) $(MAIN_SRCS) -o my_program_host
-
-# Build for the target architecture (Bare Metal RISC-V with Vector Extensions)
-canny_rv:
-	$(CXX_RISCV) $(RISCV_FLAGS) $(RISCV_SRCS) -o my_program_riscv.elf
-
-# 2. إضافة Alias عشان الـ GitHub Actions اللي متبرمج على اسم riscv يشتغل
-riscv: canny_rv
-
-# Build the Google Test executable
-test:
-	$(CXX_HOST) $(HOST_FLAGS) $(TEST_SRCS) $(GTEST_FLAGS) -o my_tests
 
 # ==========================================
 # The Magic Command: Clean, Build, Run, PNG
