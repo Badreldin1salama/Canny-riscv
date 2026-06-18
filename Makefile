@@ -1,7 +1,15 @@
 # Compilers
 CXX_HOST = g++
-CXX_RISCV = riscv64-unknown-elf-g++ 
 
+# حركة ذكية: لو إحنا على سيرفر جيت هاب استخدم كومبايلر لينكس، لو على اللاب توب استخدم Bare Metal
+ifeq ($(GITHUB_ACTIONS),true)
+    CXX_RISCV = riscv64-linux-gnu-g++
+else
+    CXX_RISCV = riscv64-unknown-elf-g++
+endif
+
+# RISC-V Flags for Vector Extension support + O3 Optimization
+RISCV_FLAGS = -O3 -march=rv64gcv -mabi=lp64d -Wall
 # RISC-V Flags for Vector Extension support + O3 Optimization
 RISCV_FLAGS = -O3 -march=rv64gcv -mabi=lp64d -Wall
 
