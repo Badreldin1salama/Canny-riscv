@@ -83,13 +83,7 @@ int main() {
     std::cout << "Done! All steps completed and all images saved successfully.\n";
 
     // --- Clean up Memory ---
-    free(inputImage);
-    free(blurredImage);
-    free(Gx);
-    free(Gy);
-    free(sobelMagnitude);
-    free(sobelDirection);
-    free(nmsResult);
-    free(thresholdResult);
+    free(inputImage);free(blurredImage);free(Gx);free(Gy); 
+    free(sobelMagnitude);free(sobelDirection);free(nmsResult); free(thresholdResult);
     return 0;
 }
