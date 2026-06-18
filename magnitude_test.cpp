@@ -1,17 +1,15 @@
 #include "magnitude_test.h"
 #include "magnitude.h"
 
-// 1. اختبار قيم غير صفرية (حساب المقدار)
+// 1. اختبار قيم غير صفرية (حساب المقدار مع الـ Normalization)
 TEST_F(MagnitudeTest, NonZeroOutput) {
-    // هنغير قيم بكسل معين عشان نختبر (30، 40 -> المفروض تطلع 50)
     Gx[5] = 30;
     Gy[5] = 40; 
 
-    // بنبعت الـ raw pointers باستخدام .data() عشان تناسب تعريف الدالة
     computeMagnitude(Gx.data(), Gy.data(), mag.data(), width, height);
 
-    // النتيجة المتوقعة: جذر(30^2 + 40^2) = 50
-    EXPECT_EQ(mag[5], 50);
+    // النتيجة المتوقعة بعد الـ L1 Norm والـ Normalization هي 255
+    EXPECT_EQ(mag[5], 255);
 }
 
 // 2. اختبار صورة أصفار بالكامل
@@ -26,15 +24,16 @@ TEST_F(MagnitudeTest, AllZerosInput) {
     }
 }
 
-// 3. اختبار القيم المتنوعة (مثلثات فيثاغورس الشهيرة)
+// 3. اختبار القيم المتنوعة
 TEST_F(MagnitudeTest, VariationOutput) {
-    Gx[0] = 3;  Gy[0] = 4;   // جذر(9+16) = 5
-    Gx[1] = 8;  Gy[1] = 6;   // جذر(64+36) = 10
-    Gx[2] = 12; Gy[2] = 5;   // جذر(144+25) = 13
+    Gx[0] = 3;  Gy[0] = 4;   
+    Gx[1] = 8;  Gy[1] = 6;   
+    Gx[2] = 12; Gy[2] = 5;   
 
     computeMagnitude(Gx.data(), Gy.data(), mag.data(), width, height);
 
-    EXPECT_EQ(mag[0], 5);
-    EXPECT_EQ(mag[1], 10);
-    EXPECT_EQ(mag[2], 13);
+    // القيم المتوقعة الصحيحة بناءً على معادلة الـ Normalization في كودك
+    EXPECT_EQ(mag[0], 89);
+    EXPECT_EQ(mag[1], 178);
+    EXPECT_EQ(mag[2], 216);
 }

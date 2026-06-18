@@ -15,8 +15,9 @@ protected:
 
     // هذه الدالة تعمل أوتوماتيكياً قبل تشغيل أي اختبار
     void SetUp() override {
+        // حجز مساحة بحجم الصورة في الذاكرة للـ input والـ output
         input.assign(width * height, 0);
-        output.clear();
+        output.assign(width * height, 0); // تم حل المشكلة هنا
     }
 };
 

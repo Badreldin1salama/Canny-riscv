@@ -15,9 +15,10 @@ protected:
     std::vector<int16_t> Gy;
 
     void SetUp() override {
+        // حجز مساحات فعلية في الذاكرة لكل المصفوفات لمنع الـ Crash
         input.assign(width * height, 0);
-        Gx.clear();
-        Gy.clear();
+        Gx.assign(width * height, 0);
+        Gy.assign(width * height, 0);
     }
 };
 
