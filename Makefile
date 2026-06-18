@@ -13,7 +13,7 @@ ALL_CPPS = $(wildcard *.cpp)
 
 # Core implementation files (excludes main.cpp, test.cpp, and equivalence_test.cpp)
 # Any new file you add (e.g., sobel.cpp, nms.cpp) is automatically included here
-LIB_SRCS = $(filter-out main.cpp test.cpp equivalence_test.cpp, $(ALL_CPPS))
+LIB_SRCS = $(filter-out main.cpp test.cpp equivalence_test.cpp syscalls.cpp, $(ALL_CPPS))
 
 # Source files for the main application
 MAIN_SRCS = main.cpp $(LIB_SRCS)

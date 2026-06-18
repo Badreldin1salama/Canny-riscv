@@ -5,7 +5,7 @@
 TEST_F(GaussianTest, UniformImage) {
     std::fill(input.begin(), input.end(), 128); // كل البكسلات 128
     
-    applyGaussianBlur(input, output, width, height);
+    applyGaussianBlur(input.data(), output.data(), width, height);
 
     // فحص البكسلات الداخلية فقط (لتجنب تأثير أصفار الحواف)
     for (int row = 2; row < height - 2; ++row) {
@@ -18,7 +18,7 @@ TEST_F(GaussianTest, UniformImage) {
 // 2. اختبار الصورة السوداء (All Black)
 TEST_F(GaussianTest, AllBlackImage) {
     // الـ SetUp قام بجعلها كلها أصفار مسبقاً
-    applyGaussianBlur(input, output, width, height);
+applyGaussianBlur(input.data(), output.data(), width, height);
 
     for (int i = 0; i < width * height; ++i) {
         EXPECT_EQ(output[i], 0);
@@ -31,7 +31,7 @@ TEST_F(GaussianTest, ImpulseSpread) {
     int center = (height / 2) * width + (width / 2);
     input[center] = 255;
 
-    applyGaussianBlur(input, output, width, height);
+applyGaussianBlur(input.data(), output.data(), width, height);
 
     // التأكد من أن النقطة في المنتصف أصبحت أقل من 255 (توزعت)
     EXPECT_LT(output[center], 255);

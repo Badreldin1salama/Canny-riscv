@@ -4,7 +4,7 @@
 // 1. اختبار الصورة السادة (Zero Gradient)
 TEST_F(SobelTest, UniformImage) {
     std::fill(input.begin(), input.end(), 100); // لون موحد
-    applySobel(input, Gx, Gy, width, height);
+    applySobel(input.data(), Gx.data(), Gy.data(), width, height);
 
     // يجب أن تكون المشتقة صفر في كل مكان داخلي
     for (int i = width + 1; i < (height - 1) * width - 1; ++i) {
@@ -22,7 +22,7 @@ TEST_F(SobelTest, VerticalEdge) {
         }
     }
 
-    applySobel(input, Gx, Gy, width, height);
+    applySobel(input.data(), Gx.data(), Gy.data(), width, height);
 
     int edgeCol = width / 2;
     int centerRow = height / 2;
@@ -42,7 +42,7 @@ TEST_F(SobelTest, HorizontalEdge) {
         }
     }
 
-    applySobel(input, Gx, Gy, width, height);
+    applySobel(input.data(), Gx.data(), Gy.data(), width, height);
 
     int edgeRow = height / 2;
     int centerCol = width / 2;

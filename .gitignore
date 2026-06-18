@@ -28,3 +28,4 @@ __pycache__/
 # 6. OS Specific Files
 .DS_Store
 Thumbs.db
+*:Zone.Identifier

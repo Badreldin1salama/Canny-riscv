@@ -7,7 +7,7 @@ TEST_F(DirectionTest, VerticalEdge) {
     std::fill(Gx.begin(), Gx.end(), 100); 
     std::fill(Gy.begin(), Gy.end(), 0);
     
-    computeDirection(Gx, Gy, dir, width, height);
+computeDirection(Gx.data(), Gy.data(), dir.data(), width, height);
     
     EXPECT_EQ(dir[0], 0); 
 }
@@ -18,7 +18,7 @@ TEST_F(DirectionTest, HorizontalEdge) {
     std::fill(Gx.begin(), Gx.end(), 0);
     std::fill(Gy.begin(), Gy.end(), 100);
     
-    computeDirection(Gx, Gy, dir, width, height); // هنا سنفحص البكسل الأول
+    computeDirection(Gx.data(), Gy.data(), dir.data(), width, height); // هنا سنفحص البكسل الأول
     
     EXPECT_EQ(dir[0], 90); 
 }
@@ -29,7 +29,7 @@ TEST_F(DirectionTest, DiagonalEdge) {
     Gx[0] = 100; Gy[0] = 100; // الإشارة موجبة (يجب أن يعطي 135)
     Gx[1] = 100; Gy[1] = -100; // إشارة مختلفة (يجب أن يعطي 45)
     
-    computeDirection(Gx, Gy, dir, width, height);
+    computeDirection(Gx.data(), Gy.data(), dir.data(), width, height);
     
     EXPECT_EQ(dir[0], 135);
     EXPECT_EQ(dir[1], 45);
