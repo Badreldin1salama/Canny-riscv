@@ -45,6 +45,9 @@ canny_rv:
 # Alias for GitHub Actions
 riscv: canny_rv
 
+# Build the Google Test executable
+test:
+	$(CXX_HOST) $(HOST_FLAGS) $(TEST_SRCS) $(GTEST_FLAGS) -o my_tests
 # ==========================================
 # The Magic Command: Clean, Build, Run, PNG
 # ==========================================
