@@ -5,24 +5,24 @@ CXX_RISCV = riscv64-unknown-elf-g++
 # RISC-V Flags for Vector Extension support
 RISCV_FLAGS = -march=rv64gcv -O2
 
-# Google Test Flags
-GTEST_FLAGS = -lgtest -lgtest_main -pthread
+# Google Test Flags (Removed -lgtest_main to avoid multiple definition of main)
+GTEST_FLAGS = -lgtest -pthread
 
 # Helper to automatically find all .cpp files in the directory
 ALL_CPPS = $(wildcard *.cpp)
 
-# Core implementation files (excludes main.cpp, test.cpp, and equivalence_test.cpp)
-# Any new file you add (e.g., sobel.cpp, nms.cpp) is automatically included here
-LIB_SRCS = $(filter-out main.cpp test.cpp equivalence_test.cpp syscalls.cpp, $(ALL_CPPS))
+# Core implementation files (excludes main.cpp, test files, and equivalence test)
+LIB_SRCS = $(filter-out main.cpp test.cpp equivalence_test.cpp %_test.cpp %_rvv.cpp %_vectorized.cpp, $(ALL_CPPS))
 
 # Source files for the main application
 MAIN_SRCS = main.cpp $(LIB_SRCS)
 
-# Source files for the Google Test suite
-TEST_SRCS = test.cpp $(LIB_SRCS)
+# Source files for the Google Test suite (Excludes RISC-V files)
+TEST_SRCS = $(filter-out main.cpp equivalence_test.cpp syscalls.cpp %_rvv.cpp %_vectorized.cpp, $(ALL_CPPS))
 
 # Source files for the RVV Equivalence Test specifically
 RVV_TEST_SRCS = equivalence_test.cpp threshold.cpp magnitude.cpp threshold_rvv.cpp magnitude_rvv.cpp
+
 # Default target: builds both host and RISC-V binaries
 all: host riscv
 
@@ -45,7 +45,6 @@ test:
 rvv_test:
 	$(CXX_RISCV) $(RISCV_FLAGS) $(RVV_TEST_SRCS) -o test_rvv
 
-# Build and run the RVV test on QEMU directly
 # Build and run the RVV test on QEMU directly with multiple VLENs
 run_rvv: rvv_test
 	@echo "--- Testing with VLEN=128 ---"
@@ -54,6 +53,8 @@ run_rvv: rvv_test
 	qemu-riscv64 -cpu max,vlen=256 ./test_rvv
 	@echo "--- Testing with VLEN=512 ---"
 	qemu-riscv64 -cpu max,vlen=512 ./test_rvv
+
+# ==========================================
 # The Magic Command: Clean, Build, Run, PNG
 # ==========================================
 run: clean riscv
