@@ -102,7 +102,8 @@ run_vlen: clean riscv_rvv
 	@echo ""
 	@echo "===== VLEN = 512 ====="
 	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./my_program_riscv_rvv
-
+	@echo "=== Converting RAW images to PNG ==="
+	python3 convert.py	
 # الـ Optimization Sweep (تجارب الـ Compiler Flags مع الـ Scalar للـ 6 مستويات)
 sweep:
 	@echo "=== O0 ==="

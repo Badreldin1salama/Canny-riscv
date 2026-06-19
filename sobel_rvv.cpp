@@ -1,5 +1,6 @@
 #include "sobel.h"
 #include <riscv_vector.h>
+#include <cstring> // ضيفنا دي عشان الـ memset
 
 void applySobel_RVV(
     const uint8_t* inputImage,
@@ -10,9 +11,10 @@ void applySobel_RVV(
 {
     int size = width * height;
 
-    Gx;
-    Gy;
-
+    // تصفير المصفوفات بالكامل لضمان إن بيكسلات الحدود تكون بصفر (Zero-padding)
+    std::memset(Gx, 0, size * sizeof(int16_t));
+    std::memset(Gy, 0, size * sizeof(int16_t));
+    
     for (int row = 1; row < height - 1; ++row)
     {
         int col = 1;
