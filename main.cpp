@@ -1,8 +1,6 @@
 #include <iostream>
 #include <cstdint>
 #include <string>
-#include <chrono>   // عشان نحسب الوقت بدقة
-#include <iomanip>  // عشان تنسيق الجدول
 #include <cstdlib>  // عشان aligned_alloc و free
 
 #include "gaussian.h"
@@ -15,6 +13,7 @@
 #include "image_io.h"
 #include "gaussian_rvv.h"
 #include "rvv_kernels.h"
+#include "profiler.h"  // الملف الجديد بتاعنا اللي فيه التايمر ودالة الطباعة
 
 // ========================================================
 // 🛠️ BARE-METAL FILE I/O FIX FOR QEMU USER-MODE
@@ -29,9 +28,8 @@ enum LMUL_Mode
     LMUL2,
     LMUL4
 };
-// ========================================================
 
-// تم تعديل الـ Parameters لتقبل Pointers بدلاً من std::vector لتتوافق مع تعديل التيم
+// ========================================================
 void runGaussian(
     LMUL_Mode mode,
     const uint8_t* inputImage,
@@ -58,14 +56,14 @@ void runGaussian(
 int main() {
     int width = 256;  
     int height = 256; 
-    const int ITERATIONS = 100; // عدد اللفات لقياس الأداء بدقة
+    const int ITERATIONS = 100;
 
     std::cout << "USE_RVV = " << USE_RVV << "\n";
     std::string inputFile = "test_1.raw";
     std::string blurredFile = "output_1_blurred.raw";
     std::string sobelFile = "output_2_sobel.raw";
     std::string nmsFile = "output_3_nms.raw";
-    std::string thresholdFile = "output_4_threshold.raw"; 
+    std::string thresholdFile = "output_4_threshold.raw";
     std::string finalFile = "output_5_final.raw"; 
 
     // 1. حساب الحجم المطلوب لكل نوع (تعديل التيم للمحاذاة)
@@ -94,19 +92,22 @@ int main() {
         return -1; 
     }
     
+    // تعريف التايمر ومتغيرات الوقت
+    Timer t;
     double t_gaussian = 0, t_sobel = 0, t_magnitude = 0, t_direction = 0;
-    double t_nms = 0, t_threshold = 0, t_hysteresis = 0, t_pure_pipeline = 0;
+    double t_nms = 0, t_threshold = 0, t_hysteresis = 0;
 
     std::cout << "Starting Profiling over " << ITERATIONS << " iterations...\n";
 
 #if USE_RVV
 
     LMUL_Mode modes[] = { LMUL1, LMUL2, LMUL4 };
-
+    
     for(int m = 0; m < 3; m++)
     {
         LMUL_Mode mode = modes[m];
-        t_gaussian = t_sobel = t_magnitude = t_direction = t_nms = t_threshold = t_hysteresis = t_pure_pipeline = 0;
+        // تصفير العدادات قبل كل لفة وضع
+        t_gaussian = t_sobel = t_magnitude = t_direction = t_nms = t_threshold = t_hysteresis = 0;
 
         std::cout << "\n=====================================\n";
         switch(mode)
@@ -120,119 +121,77 @@ int main() {
 
         for (int i = 0; i < ITERATIONS; ++i)
         {
-            auto start = std::chrono::high_resolution_clock::now();
+            t.tic();
             runGaussian(mode, inputImage, blurredImage, width, height);
-            auto end = std::chrono::high_resolution_clock::now();
-            t_gaussian += std::chrono::duration<double>(end - start).count();
+            t_gaussian += t.toc();
 
-            start = std::chrono::high_resolution_clock::now();
+            t.tic();
             applySobel_RVV(blurredImage, Gx, Gy, width, height);
-            end = std::chrono::high_resolution_clock::now();
-            t_sobel += std::chrono::duration<double>(end - start).count();
+            t_sobel += t.toc();
 
-            start = std::chrono::high_resolution_clock::now();
+            t.tic();
             computeMagnitude_RVV(Gx, Gy, sobelMagnitude, width, height);
-            end = std::chrono::high_resolution_clock::now();
-            t_magnitude += std::chrono::duration<double>(end - start).count();
+            t_magnitude += t.toc();
 
-            start = std::chrono::high_resolution_clock::now();
+            t.tic();
             computeDirection(Gx, Gy, sobelDirection, width, height);
-            end = std::chrono::high_resolution_clock::now();
-            t_direction += std::chrono::duration<double>(end - start).count();
+            t_direction += t.toc();
 
-            start = std::chrono::high_resolution_clock::now();
+            t.tic();
             applyNMS(sobelMagnitude, sobelDirection, nmsResult, width, height);
-            end = std::chrono::high_resolution_clock::now();
-            t_nms += std::chrono::duration<double>(end - start).count();
+            t_nms += t.toc();
 
-            start = std::chrono::high_resolution_clock::now();
+            t.tic();
             applyDoubleThreshold(nmsResult, thresholdResult, width, height, 40, 80);
-            end = std::chrono::high_resolution_clock::now();
-            t_threshold += std::chrono::duration<double>(end - start).count();
+            t_threshold += t.toc();
 
-            start = std::chrono::high_resolution_clock::now();
+            t.tic();
             applyHysteresis(thresholdResult, width, height);
-            end = std::chrono::high_resolution_clock::now();
-            t_hysteresis += std::chrono::duration<double>(end - start).count();
+            t_hysteresis += t.toc();
         }
-        t_pure_pipeline = t_gaussian + t_sobel + t_magnitude + t_direction + t_nms + t_threshold + t_hysteresis;
-
-        std::cout << "\n=======================================================\n";
-        std::cout << "             PROFILING RESULTS (" << ITERATIONS << " Iterations)\n";
-        std::cout << "=======================================================\n";
-        std::cout << std::left << std::setw(30) << "Stage" << " | " << std::setw(10) << "Time (s)" << " | Break Down\n";
-        std::cout << "-------------------------------------------------------\n";
-        std::cout << std::fixed << std::setprecision(4);
-        std::cout << std::setw(30) << "Stage 1: Gaussian Blur" << " | " << std::setw(10) << t_gaussian << " | " << std::setprecision(1) << (t_gaussian / t_pure_pipeline) * 100 << "%\n";
-        std::cout << std::setprecision(4) << std::setw(30) << "Stage 2: Sobel Gradients" << " | " << std::setw(10) << t_sobel << " | " << std::setprecision(1) << (t_sobel / t_pure_pipeline) * 100 << "%\n";
-        std::cout << std::setprecision(4) << std::setw(30) << "Stage 3a: Magnitude" << " | " << std::setw(10) << t_magnitude << " | " << std::setprecision(1) << (t_magnitude / t_pure_pipeline) * 100 << "%\n";
-        std::cout << std::setprecision(4) << std::setw(30) << "Stage 3b: Direction" << " | " << std::setw(10) << t_direction << " | " << std::setprecision(1) << (t_direction / t_pure_pipeline) * 100 << "%\n";
-        std::cout << std::setprecision(4) << std::setw(30) << "Stage 4: Non-Max Suppression" << " | " << std::setw(10) << t_nms << " | " << std::setprecision(1) << (t_nms / t_pure_pipeline) * 100 << "%\n";
-        std::cout << std::setprecision(4) << std::setw(30) << "Stage 5a: Double Threshold" << " | " << std::setw(10) << t_threshold << " | " << std::setprecision(1) << (t_threshold / t_pure_pipeline) * 100 << "%\n";
-        std::cout << std::setprecision(4) << std::setw(30) << "Stage 5b: Hysteresis Tracing" << " | " << std::setw(10) << t_hysteresis << " | " << std::setprecision(1) << (t_hysteresis / t_pure_pipeline) * 100 << "%\n";
-        std::cout << "-------------------------------------------------------\n";
-        std::cout << std::setprecision(4) << std::setw(30) << "Total Pure Pipeline Time" << " | " << t_pure_pipeline << " seconds\n";
-        std::cout << "=======================================================\n\n";
+        
+        // استدعاء دالة الطباعة اللي في ملف profiler.h
+        printProfilingReport(ITERATIONS, t_gaussian, t_sobel, t_magnitude, t_direction, t_nms, t_threshold, t_hysteresis);
     }
 
 #else
 
+    // تصفير العدادات للنسخة الـ Scalar
+    t_gaussian = t_sobel = t_magnitude = t_direction = t_nms = t_threshold = t_hysteresis = 0;
+
     for (int i = 0; i < ITERATIONS; ++i)
     {
-        auto start = std::chrono::high_resolution_clock::now();
+        t.tic();
         applyGaussianBlur(inputImage, blurredImage, width, height);
-        auto end = std::chrono::high_resolution_clock::now();
-        t_gaussian += std::chrono::duration<double>(end - start).count();
+        t_gaussian += t.toc();
 
-        start = std::chrono::high_resolution_clock::now();
+        t.tic();
         applySobel(blurredImage, Gx, Gy, width, height);
-        end = std::chrono::high_resolution_clock::now();
-        t_sobel += std::chrono::duration<double>(end - start).count();
+        t_sobel += t.toc();
 
-        start = std::chrono::high_resolution_clock::now();
+        t.tic();
         computeMagnitude(Gx, Gy, sobelMagnitude, width, height);
-        end = std::chrono::high_resolution_clock::now();
-        t_magnitude += std::chrono::duration<double>(end - start).count();
+        t_magnitude += t.toc();
 
-        start = std::chrono::high_resolution_clock::now();
+        t.tic();
         computeDirection(Gx, Gy, sobelDirection, width, height);
-        end = std::chrono::high_resolution_clock::now();
-        t_direction += std::chrono::duration<double>(end - start).count();
+        t_direction += t.toc();
 
-        start = std::chrono::high_resolution_clock::now();
+        t.tic();
         applyNMS(sobelMagnitude, sobelDirection, nmsResult, width, height);
-        end = std::chrono::high_resolution_clock::now();
-        t_nms += std::chrono::duration<double>(end - start).count();
+        t_nms += t.toc();
 
-        start = std::chrono::high_resolution_clock::now();
+        t.tic();
         applyDoubleThreshold(nmsResult, thresholdResult, width, height, 40, 80);
-        end = std::chrono::high_resolution_clock::now();
-        t_threshold += std::chrono::duration<double>(end - start).count();
+        t_threshold += t.toc();
 
-        start = std::chrono::high_resolution_clock::now();
+        t.tic();
         applyHysteresis(thresholdResult, width, height);
-        end = std::chrono::high_resolution_clock::now();
-        t_hysteresis += std::chrono::duration<double>(end - start).count();
+        t_hysteresis += t.toc();
     }
 
-    t_pure_pipeline = t_gaussian + t_sobel + t_magnitude + t_direction + t_nms + t_threshold + t_hysteresis;
-
-    std::cout << "\n=======================================================\n";
-    std::cout << "             PROFILING RESULTS (" << ITERATIONS << " Iterations)\n";
-    std::cout << "=======================================================\n";
-    std::cout << std::left << std::setw(30) << "Stage" << " | " << std::setw(10) << "Time (s)" << " | Break Down\n";
-    std::cout << "-------------------------------------------------------\n";
-    std::cout << std::fixed << std::setprecision(4);
-    std::cout << std::setw(30) << "Stage 1: Gaussian Blur" << " | " << std::setw(10) << t_gaussian << " | " << std::setprecision(1) << (t_gaussian / t_pure_pipeline) * 100 << "%\n";
-    std::cout << std::setprecision(4) << std::setw(30) << "Stage 2: Sobel Gradients" << " | " << std::setw(10) << t_sobel << " | " << std::setprecision(1) << (t_sobel / t_pure_pipeline) * 100 << "%\n";
-    std::cout << std::setprecision(4) << std::setw(30) << "Stage 3a: Magnitude" << " | " << std::setw(10) << t_magnitude << " | " << std::setprecision(1) << (t_magnitude / t_pure_pipeline) * 100 << "%\n";
-    std::cout << std::setprecision(4) << std::setw(30) << "Stage 3b: Direction" << " | " << std::setw(10) << t_direction << " | " << std::setprecision(1) << (t_direction / t_pure_pipeline) * 100 << "%\n";
-    std::cout << std::setprecision(4) << std::setw(30) << "Stage 4: Non-Max Suppression" << " | " << std::setw(10) << t_nms << " | " << std::setprecision(1) << (t_nms / t_pure_pipeline) * 100 << "%\n";
-    std::cout << std::setprecision(4) << std::setw(30) << "Stage 5a: Double Threshold" << " | " << std::setw(10) << t_threshold << " | " << std::setprecision(1) << (t_threshold / t_pure_pipeline) * 100 << "%\n";
-    std::cout << std::setprecision(4) << std::setw(30) << "Stage 5b: Hysteresis Tracing" << " | " << std::setw(10) << t_hysteresis << " | " << std::setprecision(1) << (t_hysteresis / t_pure_pipeline) * 100 << "%\n";
-    std::cout << "-------------------------------------------------------\n";
-    std::cout << std::setprecision(4) << std::setw(30) << "Total Pure Pipeline Time" << " | " << t_pure_pipeline << " seconds\n";
-    std::cout << "=======================================================\n\n";
+    // استدعاء دالة الطباعة اللي في ملف profiler.h
+    printProfilingReport(ITERATIONS, t_gaussian, t_sobel, t_magnitude, t_direction, t_nms, t_threshold, t_hysteresis);
 
 #endif
 
@@ -243,11 +202,11 @@ int main() {
     writeRawImage(nmsFile, nmsResult, width, height);
     writeRawImage(thresholdFile, thresholdResult, width, height);
     writeRawImage(finalFile, thresholdResult, width, height);
-
     std::cout << "Done! All steps completed.\n";
 
-    // --- Clean up Memory (تعديل التيم عشان مفيش Memory Leak) ---
-    free(inputImage); free(blurredImage); free(Gx); free(Gy); 
+    // --- Clean up Memory ---
+    free(inputImage);
+    free(blurredImage); free(Gx); free(Gy); 
     free(sobelMagnitude); free(sobelDirection); free(nmsResult); free(thresholdResult);
 
     return 0;

@@ -57,9 +57,13 @@ all: host riscv
 host:
 	$(CXX_HOST) $(MAIN_SRCS) -o my_program_host
 
-# Build for the target architecture with RVV enabled (-DUSE_RVV=1)
+# Build for the target architecture (Scalar Version - للاستخدام في make run والـ CI)
 riscv:
-	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=1 $(RISCV_SRCS) -o my_program_riscv
+	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 $(RISCV_SRCS) -o my_program_riscv
+
+# Build for the target architecture with RVV enabled (لعمل سوييب الفيكتور)
+riscv_rvv:
+	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=1 $(RISCV_SRCS) -o my_program_riscv_rvv
 
 # Build the Google Test executable for Host
 test:
@@ -83,27 +87,31 @@ run_rvv: rvv_test
 # ==========================================
 # 7. الـ Commands السحرية بتاعتك (Run, Sweep, VLEN)
 # ==========================================
-# تشغيل البرنامج العادي على الـ QEMU
+# تشغيل البرنامج العادي (السكالر) على الـ QEMU واستخراج الصور
 run: clean riscv
 	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./my_program_riscv
 	python3 convert.py
 
-# اختبار الأداء على VLENs مختلفة لملف الـ RISC-V الأساسي
-run_vlen: clean riscv
+# اختبار الأداء على VLENs مختلفة لملف الـ RISC-V المخصص للفيكتور (ويشمل الـ LMUL داخلياً)
+run_vlen: clean riscv_rvv
 	@echo "===== VLEN = 128 ====="
-	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=128 ./my_program_riscv
+	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=128 ./my_program_riscv_rvv
 	@echo ""
 	@echo "===== VLEN = 256 ====="
-	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=256 ./my_program_riscv
+	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=256 ./my_program_riscv_rvv
 	@echo ""
 	@echo "===== VLEN = 512 ====="
-	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./my_program_riscv
+	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./my_program_riscv_rvv
 
-# الـ Optimization Sweep (تجارب الـ Compiler Flags مع الـ Scalar)
+# الـ Optimization Sweep (تجارب الـ Compiler Flags مع الـ Scalar للـ 6 مستويات)
 sweep:
 	@echo "=== O0 ==="
 	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O0 $(RISCV_SRCS) -o canny_O0
 	/usr/bin/time -f "Elapsed: %e s" qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./canny_O0
+
+	@echo "=== O1 ==="
+	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O1 $(RISCV_SRCS) -o canny_O1
+	/usr/bin/time -f "Elapsed: %e s" qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./canny_O1
 
 	@echo "=== O2 ==="
 	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O2 $(RISCV_SRCS) -o canny_O2
@@ -127,5 +135,5 @@ png:
 
 # التنظيف المتكامل
 clean:
-	rm -f my_program_host my_program_riscv my_tests test_rvv canny_O0 canny_O2 canny_O3 canny_Os canny_Ofast
+	rm -f my_program_host my_program_riscv my_program_riscv_rvv my_tests test_rvv canny_O0 canny_O1 canny_O2 canny_O3 canny_Os canny_Ofast
 	rm -f output_*.raw output_*.png
