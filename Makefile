@@ -4,78 +4,66 @@
 CXX_HOST = g++
 
 # ==========================================
-# 2. File Definitions (تحديد تلقائي ذكي للملفات)
+# 2. File Definitions
 # ==========================================
-# Helper to automatically find all .cpp files in the directory
-ALL_CPPS = $(wildcard *.cpp)
+SRC_CPPS     = $(wildcard src/*.cpp)
+TEST_CPPS    = $(wildcard tests/*.cpp)
+# تم تصحيح النجمة هنا عشان يجيب كل ملفات الـ rvv
+RVV_SRCS_ALL = $(wildcard src/*_rvv.cpp)
 
-# Core scalar implementation files (ملفات السكالر فقط - استبعاد الـ RVV والتست)
-LIB_SRCS = $(filter-out main.cpp test.cpp equivalence_test.cpp syscalls.cpp %_test.cpp $(RVV_SRCS_ALL) %_vectorized.cpp, $(ALL_CPPS))
+# استخدام النمط src/%_rvv.cpp لضمان فلترة كل ملفات الفيكتور من السكالر
+LIB_SRCS = $(filter-out src/main.cpp src/syscalls.cpp src/%_rvv.cpp, $(SRC_CPPS))
 
-# Source files for the main application (Scalar only for Host machine)
-MAIN_SRCS = main.cpp $(LIB_SRCS)
+MAIN_SRCS = src/main.cpp $(LIB_SRCS)
 
-# Source files for the Google Test suite (Excludes RISC-V vector files)
-TEST_SRCS = $(filter-out main.cpp equivalence_test.cpp syscalls.cpp $(RVV_SRCS_ALL) %_vectorized.cpp, $(ALL_CPPS))
+TEST_SRCS = $(filter-out tests/equivalence_test.cpp, $(TEST_CPPS)) $(LIB_SRCS)
 
-# Automatically catch all your RVV implementation files (تجميع تلقائي لملفات الـ RVV بتاعتك)
-RVV_SRCS_ALL = $(wildcard *_rvv*.cpp)
-
-# Source files for the RVV Equivalence Test (يجمع السكالر مع الفيكتور أوتوماتيك)
-RVV_TEST_SRCS = equivalence_test.cpp $(LIB_SRCS) $(RVV_SRCS_ALL)
+RVV_TEST_SRCS = tests/equivalence_test.cpp $(LIB_SRCS) $(RVV_SRCS_ALL)
 
 # ==========================================
-# 3. حركة التيم الذكية: تحديد الكومبايلر والملفات والـ QEMU بناءً على البيئة
+# 3. Environment Detection
 # ==========================================
 ifeq ($(GITHUB_ACTIONS),true)
-    # على جيت هاب: نستخدم كومبايلر اللينكس ومندخلش ملف syscalls، وبنحتاج الـ Sysroot path في QEMU
-    CXX_RISCV = riscv64-linux-gnu-g++
+    CXX_RISCV  = riscv64-linux-gnu-g++
     RISCV_SRCS = $(MAIN_SRCS) $(RVV_SRCS_ALL)
-    QEMU_ENV = -L /usr/riscv64-linux-gnu
+    QEMU_ENV   = -L /usr/riscv64-linux-gnu
 else
-    # على اللاب توب (Bare Metal): نستخدم unknown-elf ولازم نضيف ملف syscalls والـ QEMU مش محتاج لودر خارجي
-    CXX_RISCV = riscv64-unknown-elf-g++
-    RISCV_SRCS = $(MAIN_SRCS) $(RVV_SRCS_ALL) syscalls.cpp
-    QEMU_ENV = 
+    CXX_RISCV  = riscv64-unknown-elf-g++
+    RISCV_SRCS = $(MAIN_SRCS) $(RVV_SRCS_ALL) src/syscalls.cpp
+    QEMU_ENV   =
 endif
 
 # ==========================================
 # 4. Flags
 # ==========================================
-# RISC-V Flags for Vector Extension support (ضفنا -static لضمان الاستقرار)
-RISCV_FLAGS = -march=rv64gcv -O2 -static
-
-# Google Test Flags
+INCLUDES    = -Iinclude
+RISCV_FLAGS = -march=rv64gcv -O2 -static $(INCLUDES)
+HOST_FLAGS  = $(INCLUDES)
 GTEST_FLAGS = -lgtest -pthread
 
 # ==========================================
-# 5. Targets الأساسية
+# 5. Main Targets
 # ==========================================
 all: host riscv
 
-# Build for the local host machine (Scalar only)
 host:
-	$(CXX_HOST) $(MAIN_SRCS) -o my_program_host
+	$(CXX_HOST) $(HOST_FLAGS) $(MAIN_SRCS) -o my_program_host
 
-# Build for the target architecture (Scalar Version - للاستخدام في make run والـ CI)
 riscv:
 	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 $(RISCV_SRCS) -o my_program_riscv
 
-# Build for the target architecture with RVV enabled (لعمل سوييب الفيكتور)
 riscv_rvv:
 	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=1 $(RISCV_SRCS) -o my_program_riscv_rvv
 
-# Build the Google Test executable for Host
 test:
-	$(CXX_HOST) $(TEST_SRCS) $(GTEST_FLAGS) -o my_tests
+	$(CXX_HOST) $(HOST_FLAGS) $(TEST_SRCS) $(GTEST_FLAGS) -o my_tests
 
 # ==========================================
-# 6. RVV Equivalence Test Targets (اختبارات التطابق بتاعتك)
+# 6. RVV Equivalence Test
 # ==========================================
 rvv_test:
 	$(CXX_RISCV) $(RISCV_FLAGS) $(RVV_TEST_SRCS) -o test_rvv
 
-# تشغيل اختبار التطابق على كذا VLEN ومراعاة البيئة
 run_rvv: rvv_test
 	@echo "--- Testing with VLEN=128 ---"
 	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=128 ./test_rvv
@@ -85,55 +73,38 @@ run_rvv: rvv_test
 	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./test_rvv
 
 # ==========================================
-# 7. الـ Commands السحرية بتاعتك (Run, Sweep, VLEN)
+# 7. Run, Sweep, VLEN
 # ==========================================
-# تشغيل البرنامج العادي (السكالر) على الـ QEMU واستخراج الصور
 run: clean riscv
 	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./my_program_riscv
-	python3 convert.py
+	python3 scripts/convert.py
 
-# اختبار الأداء على VLENs مختلفة لملف الـ RISC-V المخصص للفيكتور (ويشمل الـ LMUL داخلياً)
 run_vlen: clean riscv_rvv
 	@echo "===== VLEN = 128 ====="
 	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=128 ./my_program_riscv_rvv
-	@echo ""
 	@echo "===== VLEN = 256 ====="
 	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=256 ./my_program_riscv_rvv
-	@echo ""
 	@echo "===== VLEN = 512 ====="
 	qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./my_program_riscv_rvv
 
-# الـ Optimization Sweep (تجارب الـ Compiler Flags مع الـ Scalar للـ 6 مستويات)
 sweep:
-	@echo "=== O0 ==="
-	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O0 $(RISCV_SRCS) -o canny_O0
+	@echo "=== O0 ===" && $(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O0 $(RISCV_SRCS) -o canny_O0
 	/usr/bin/time -f "Elapsed: %e s" qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./canny_O0
-
-	@echo "=== O1 ==="
-	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O1 $(RISCV_SRCS) -o canny_O1
+	@echo "=== O1 ===" && $(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O1 $(RISCV_SRCS) -o canny_O1
 	/usr/bin/time -f "Elapsed: %e s" qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./canny_O1
-
-	@echo "=== O2 ==="
-	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O2 $(RISCV_SRCS) -o canny_O2
+	@echo "=== O2 ===" && $(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O2 $(RISCV_SRCS) -o canny_O2
 	/usr/bin/time -f "Elapsed: %e s" qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./canny_O2
-
-	@echo "=== O3 ==="
-	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O3 $(RISCV_SRCS) -o canny_O3
+	@echo "=== O3 ===" && $(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -O3 $(RISCV_SRCS) -o canny_O3
 	/usr/bin/time -f "Elapsed: %e s" qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./canny_O3
-
-	@echo "=== Os ==="
-	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -Os $(RISCV_SRCS) -o canny_Os
+	@echo "=== Os ===" && $(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -Os $(RISCV_SRCS) -o canny_Os
 	/usr/bin/time -f "Elapsed: %e s" qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./canny_Os
-
-	@echo "=== Ofast ==="
-	$(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -Ofast $(RISCV_SRCS) -o canny_Ofast
+	@echo "=== Ofast ===" && $(CXX_RISCV) $(RISCV_FLAGS) -DUSE_RVV=0 -Ofast $(RISCV_SRCS) -o canny_Ofast
 	/usr/bin/time -f "Elapsed: %e s" qemu-riscv64 $(QEMU_ENV) -cpu max,vlen=512 ./canny_Ofast
 
-# تحويل الصور
 png:
-	python3 convert.py
+	python3 scripts/convert.py
 
-# التنظيف المتكامل
 clean:
 	rm -f my_program_host my_program_riscv my_program_riscv_rvv my_tests test_rvv canny_O0 canny_O1 canny_O2 canny_O3 canny_Os canny_Ofast
+
 	rm -f output_*.raw output_*.png
