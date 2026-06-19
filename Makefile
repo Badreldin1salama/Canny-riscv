@@ -10,16 +10,16 @@ CXX_HOST = g++
 ALL_CPPS = $(wildcard *.cpp)
 
 # Core scalar implementation files (ملفات السكالر فقط - استبعاد الـ RVV والتست)
-LIB_SRCS = $(filter-out main.cpp test.cpp equivalence_test.cpp syscalls.cpp %_test.cpp %_rvv.cpp %_vectorized.cpp, $(ALL_CPPS))
+LIB_SRCS = $(filter-out main.cpp test.cpp equivalence_test.cpp syscalls.cpp %_test.cpp $(RVV_SRCS_ALL) %_vectorized.cpp, $(ALL_CPPS))
 
 # Source files for the main application (Scalar only for Host machine)
 MAIN_SRCS = main.cpp $(LIB_SRCS)
 
 # Source files for the Google Test suite (Excludes RISC-V vector files)
-TEST_SRCS = $(filter-out main.cpp equivalence_test.cpp syscalls.cpp %_rvv.cpp %_vectorized.cpp, $(ALL_CPPS))
+TEST_SRCS = $(filter-out main.cpp equivalence_test.cpp syscalls.cpp $(RVV_SRCS_ALL) %_vectorized.cpp, $(ALL_CPPS))
 
 # Automatically catch all your RVV implementation files (تجميع تلقائي لملفات الـ RVV بتاعتك)
-RVV_SRCS_ALL = $(wildcard *_rvv.cpp)
+RVV_SRCS_ALL = $(wildcard *_rvv*.cpp)
 
 # Source files for the RVV Equivalence Test (يجمع السكالر مع الفيكتور أوتوماتيك)
 RVV_TEST_SRCS = equivalence_test.cpp $(LIB_SRCS) $(RVV_SRCS_ALL)
