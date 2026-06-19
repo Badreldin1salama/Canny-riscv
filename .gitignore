@@ -9,6 +9,7 @@ build_host/
 my_program_host
 my_program_riscv
 my_tests
+canny_*
 # 2. Generated Images and Data
 *.raw
 *.png
