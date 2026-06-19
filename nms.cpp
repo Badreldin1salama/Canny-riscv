@@ -28,22 +28,22 @@ void applyNMS(const uint8_t* magnitude,
 
             // Determine neighbors based on gradient direction
             if (dir == 0) {
-                // Horizontal gradient -> Vertical edge
-                neighbor1 = magnitude[(row - 1) * width + col];
-                neighbor2 = magnitude[(row + 1) * width + col];
-            } 
-            else if (dir == 90) {
-                // Vertical gradient -> Horizontal edge
+                // Horizontal gradient -> compare with LEFT and RIGHT neighbors
                 neighbor1 = magnitude[row * width + (col - 1)];
                 neighbor2 = magnitude[row * width + (col + 1)];
             } 
+            else if (dir == 90) {
+                // Vertical gradient -> compare with TOP and BOTTOM neighbors
+                neighbor1 = magnitude[(row - 1) * width + col];
+                neighbor2 = magnitude[(row + 1) * width + col];
+            } 
             else if (dir == 45) {
-                // Diagonal 45
+                // Diagonal 45 -> compare with Top-Right and Bottom-Left
                 neighbor1 = magnitude[(row - 1) * width + (col + 1)];
                 neighbor2 = magnitude[(row + 1) * width + (col - 1)];
             } 
             else if (dir == 135) {
-                // Diagonal 135
+                // Diagonal 135 -> compare with Top-Left and Bottom-Right
                 neighbor1 = magnitude[(row - 1) * width + (col - 1)];
                 neighbor2 = magnitude[(row + 1) * width + (col + 1)];
             }
