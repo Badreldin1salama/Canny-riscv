@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cstdint>
 #include <string>
-#include <cstdlib>  // عشان aligned_alloc و free
+#include <cstdlib>  // عشان aligned_alloc و free و atoi
 
 #include "gaussian.h"
 #include "sobel.h"
@@ -53,12 +53,23 @@ void runGaussian(
     }
 }
 
-int main() {
-    int width = 256;  
-    int height = 256; 
+int main(int argc, char* argv[]) {
+    // 1. التأكد إن اليوزر باعت الأبعاد وهو بيشغل البرنامج
+    if (argc < 3) {
+        std::cerr << "Error: Missing width and height arguments!\n";
+        std::cerr << "Usage: " << argv[0] << " <width> <height>\n";
+        std::cerr << "Example: " << argv[0] << " 256 256\n";
+        return -1;
+    }
+
+    // 2. قراءة الأبعاد من التيرمينال
+    int width = std::atoi(argv[1]);
+    int height = std::atoi(argv[2]);
     const int ITERATIONS = 100;
 
     std::cout << "USE_RVV = " << USE_RVV << "\n";
+    std::cout << "Image Size: " << width << " x " << height << "\n";
+    
     std::string inputFile = "data/test_1.raw";
     std::string blurredFile = "output_1_blurred.raw";
     std::string sobelFile = "output_2_sobel.raw";
@@ -66,12 +77,12 @@ int main() {
     std::string thresholdFile = "output_4_threshold.raw";
     std::string finalFile = "output_5_final.raw"; 
 
-    // 1. حساب الحجم المطلوب لكل نوع (تعديل التيم للمحاذاة)
+    // 3. حساب الحجم المطلوب لكل نوع (تعديل التيم للمحاذاة)
     size_t num_pixels = width * height;
     size_t aligned_size_8bit = ((num_pixels * sizeof(uint8_t) + 63) / 64) * 64;
     size_t aligned_size_16bit = ((num_pixels * sizeof(int16_t) + 63) / 64) * 64;
 
-    // 2. تعريف المؤشرات وحجز الميموري باستخدام aligned_alloc
+    // 4. تعريف المؤشرات وحجز الميموري باستخدام aligned_alloc
     uint8_t* inputImage = nullptr; 
     uint8_t* blurredImage = static_cast<uint8_t*>(aligned_alloc(64, aligned_size_8bit));
     int16_t* Gx = static_cast<int16_t*>(aligned_alloc(64, aligned_size_16bit));
