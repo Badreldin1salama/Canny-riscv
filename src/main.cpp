@@ -59,7 +59,7 @@ int main() {
     const int ITERATIONS = 100;
 
     std::cout << "USE_RVV = " << USE_RVV << "\n";
-    std::string inputFile = "test_1.raw";
+    std::string inputFile = "data/test_1.raw";
     std::string blurredFile = "output_1_blurred.raw";
     std::string sobelFile = "output_2_sobel.raw";
     std::string nmsFile = "output_3_nms.raw";
