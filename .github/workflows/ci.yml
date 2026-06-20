@@ -55,4 +55,4 @@ jobs:
 
       - name: Check formatting
         run: |
-          clang-format --dry-run *.cpp *.h
+          clang-format --dry-run src/*.cpp include/*.h
