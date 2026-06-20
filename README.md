@@ -22,12 +22,16 @@ Implementation of the Canny Edge Detection pipeline optimized with RISC-V Vector
 
 ```text
 canny-riscv/
-├── src/          # Source files (C++ implementation)
-├── tests/        # Unit tests (GoogleTest)
-├── include/      # Header files
-├── build_rv/     # RISC-V build output artifacts
-├── build_host/   # Host build output artifacts
-└── Makefile      # Dual-target build automation
+├── .github/workflows/ # CI automated pipeline configurations
+├── data/              # Image datasets and testing resources
+├── include/           # C++ Header files (.h)
+├── matlab/            # MATLAB scripts for algorithm prototyping & verification
+├── scripts/           # Automation, profiling, and benchmarking scripts
+├── src/               # C++ Source files (.cpp)
+├── .gitignore         # Untracked files configuration (build artifacts, binaries)
+├── LICENSE            # Project license
+├── Makefile           # Dual-target build automation
+└── README.md          # Project documentation
 ```
 
 ---
