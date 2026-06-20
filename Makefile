@@ -137,3 +137,15 @@ png:
 clean:
 	rm -f my_program_host my_program_riscv my_program_riscv_rvv my_tests test_rvv canny_O0 canny_O1 canny_O2 canny_O3 canny_Os canny_Ofast
 	rm -f output_*.raw output_*.png
+
+# ==========================================
+# Auto-Vectorization Analysis Reports
+# ==========================================
+
+report_missed:
+	@echo "=== Auto-Vectorization: MISSED (Focusing on Gaussian Hotspot) ==="
+	-riscv64-unknown-elf-g++ -march=rv64gcv -O3 -fopt-info-vec-missed -c main.cpp 2>&1 | grep --color=always "gaussian"
+
+report_optimized:
+	@echo "=== Auto-Vectorization: OPTIMIZED (Successes in Linear Code) ==="
+	-riscv64-unknown-elf-g++ -march=rv64gcv -O3 -fopt-info-vec-optimized -c magnitude.cpp sobel.cpp 2>&1 | grep --color=always "optimized"	
